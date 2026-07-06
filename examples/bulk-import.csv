@@ -1,0 +1,5 @@
+service,url,username,password,notes
+Example,https://example.com,user@example.com,example-password-123,Personal account
+Example,https://example.org,work@company.com,work-password,Work account
+Demo,https://demo.example.com,dev-admin,demo-key,Dev environment
+Demo,https://demo.example.com,prod-admin,prod-key,Production environment

@@ -1,0 +1,26 @@
+{
+  "accounts": [
+    {
+      "service": "Example",
+      "url": "https://example.com",
+      "username": "user@example.com",
+      "password": "example-password-1",
+      "notes": "Personal account"
+    },
+    {
+      "service": "Demo",
+      "url": "https://demo.example.com",
+      "username": "dev-admin",
+      "password": "demo-key-1",
+      "notes": "Dev environment"
+    }
+  ],
+  "items": [
+    {
+      "name": "Dev Secret",
+      "type": "token",
+      "value": "token-example-value",
+      "notes": "Example API token"
+    }
+  ]
+}
