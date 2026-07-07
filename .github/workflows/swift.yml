@@ -15,8 +15,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
+    - name: xcodegen generate
+      uses: xavierLowmiller/xcodegen-action@1.2.4
     - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
     - name: Run tests
-      run: swift test -v
+      run: xcodebuild test -project Brankas.xcodeproj
