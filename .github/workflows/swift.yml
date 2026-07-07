@@ -1,24 +1,26 @@
-name: Swift
+name: Swift CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [release]
   pull_request:
-    branches: [ "main" ]
+    branches: [release]
 
 jobs:
-  build:
+  test:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Generate Xcode project
-      uses: xavierLowmiller/xcodegen-action@1.2.4
-    - name: Run tests
-      run: |
-        xcodebuild test \
-          -project Brankas.xcodeproj \
-          -scheme Brankas \
-          -destination "platform=macOS" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY=""
+      - uses: actions/checkout@v4
+
+      - name: Generate Xcode project
+        uses: xavierLowmiller/xcodegen-action@1.2.4
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -project Brankas.xcodeproj \
+            -scheme Brankas \
+            -destination "platform=macOS" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""

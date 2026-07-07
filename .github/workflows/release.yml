@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Xcode project
+        uses: xavierLowmiller/xcodegen-action@1.2.4
+
+      # Create .dmg here
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Brankas.dmg
