@@ -44,3 +44,15 @@ targets:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEBUG
         Release:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited)
+
+  BrankasTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/BrankasTests
+    dependencies:
+      - target: Brankas
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.rifqifadhlillah.brankas.tests
