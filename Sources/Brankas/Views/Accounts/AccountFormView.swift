@@ -239,3 +239,8 @@ struct AccountFormView: View {
         }
     }
 }
+
+#Preview {
+    AccountFormView()
+        .modelContainer(for: [Service.self, Account.self], inMemory: true)
+}

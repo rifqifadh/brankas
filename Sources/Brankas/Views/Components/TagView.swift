@@ -41,3 +41,12 @@ struct TagView: View {
         .clipShape(.rect(cornerRadius: 4))
     }
 }
+
+#Preview {
+    TagView(tags: [
+        Tag(name: "important"),
+        Tag(name: "work"),
+        Tag(name: "personal")
+    ])
+    .padding()
+}

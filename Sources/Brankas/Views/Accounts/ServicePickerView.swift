@@ -45,3 +45,13 @@ struct ServicePickerView: View {
         .frame(width: 320, height: 400)
     }
 }
+
+#Preview {
+    ServicePickerView(
+        services: [
+            Service(name: "GitHub", url: "https://github.com", icon: "globe"),
+            Service(name: "Google", url: "https://google.com", icon: "network")
+        ],
+        selectedService: .constant(nil)
+    )
+}

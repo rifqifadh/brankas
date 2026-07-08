@@ -221,3 +221,9 @@ struct ContentView: View {
         }
     }
 }
+
+#Preview {
+    ContentView()
+        .environment(ClipboardService())
+        .modelContainer(for: [SecretItem.self, Category.self, Tag.self, Account.self, Service.self], inMemory: true)
+}

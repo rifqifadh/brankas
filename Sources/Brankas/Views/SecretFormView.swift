@@ -348,3 +348,8 @@ struct SecretFormView: View {
         }
     }
 }
+
+#Preview {
+    SecretFormView(mode: .add)
+        .modelContainer(for: [SecretItem.self, Category.self, Tag.self], inMemory: true)
+}

@@ -75,3 +75,12 @@ struct TokenRowView: View {
         }
     }
 }
+
+#Preview {
+    TokenRowView(
+        item: SecretItem(name: "API Key", type: .token, isFavorite: true),
+        onCopy: {},
+        onDelete: {}
+    )
+    .padding()
+}

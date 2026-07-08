@@ -26,3 +26,8 @@ struct SearchBar: View {
         .clipShape(.rect(cornerRadius: 8))
     }
 }
+
+#Preview {
+    SearchBar(text: .constant(""))
+        .padding()
+}

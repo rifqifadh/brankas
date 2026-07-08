@@ -62,6 +62,7 @@ struct AccountDetailView: View {
                 Button("Edit", systemImage: "pencil") {
                     showingEditSheet = true
                 }
+                .labelStyle(.titleOnly)
                 .keyboardShortcut("e")
 
                 Button("Delete", systemImage: "trash") {
@@ -277,4 +278,13 @@ struct AccountDetailView: View {
             .foregroundStyle(color)
             .font(.callout)
     }
+}
+
+#Preview {
+    let service = Service(name: "GitHub", url: "https://github.com", icon: "globe")
+    let account = Account(identifier: "user@example.com", notes: "Main account", isFavorite: true, service: service)
+    return AccountDetailView(account: account)
+        .environment(ClipboardService())
+        .modelContainer(for: [Account.self, Service.self], inMemory: true)
+        .frame(width: 400, height: 500)
 }

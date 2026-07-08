@@ -276,3 +276,10 @@ struct SecretDetailView: View {
             .font(.callout)
     }
 }
+
+#Preview {
+    SecretDetailView(secret: SecretItem(name: "WiFi Password", type: .password, notes: "Home network", isFavorite: true))
+        .environment(ClipboardService())
+        .modelContainer(for: [SecretItem.self, Category.self, Tag.self], inMemory: true)
+        .frame(width: 400, height: 500)
+}

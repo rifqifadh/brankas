@@ -433,3 +433,9 @@ struct SettingsView: View {
         showingAlert = true
     }
 }
+
+#Preview {
+    SettingsView()
+        .environment(ClipboardService())
+        .modelContainer(for: [SecretItem.self], inMemory: true)
+}

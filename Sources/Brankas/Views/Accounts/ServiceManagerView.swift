@@ -74,3 +74,8 @@ struct ServiceManagerView: View {
         }
     }
 }
+
+#Preview {
+    ServiceManagerView()
+        .modelContainer(for: [Service.self], inMemory: true)
+}

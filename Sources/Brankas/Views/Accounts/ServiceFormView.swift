@@ -93,3 +93,8 @@ struct ServiceFormView: View {
         }
     }
 }
+
+#Preview {
+    ServiceFormView()
+        .modelContainer(for: [Service.self], inMemory: true)
+}

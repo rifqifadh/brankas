@@ -25,7 +25,9 @@ struct MenuBarPopover: View {
     guard !searchText.isEmpty else { return secrets }
     return secrets.filter { item in
       item.name.localizedStandardContains(searchText)
-      || item.tags.contains { $0.name.localizedStandardContains(searchText) }
+      || item.tags.contains { $0.name.localizedStandardContains(searchText)
+        || item.type.displayName.localizedStandardContains(searchText)
+      }
     }
   }
   
@@ -175,106 +177,10 @@ struct MenuBarPopover: View {
           let accts = accounts(for: service)
           DisclosureGroup(isExpanded: expandedBinding(for: service.id)) {
             ForEach(accts) { account in
-              VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                  Button {
-                    copyUsername(account)
-                  } label: {
-                    HStack(spacing: 4) {
-                      Image(systemName: "person.circle")
-                        .foregroundStyle(.tint)
-                        .frame(width: 14)
-                      
-                      Text(account.identifier)
-                        .font(.callout)
-                        .lineLimit(1)
-                    }
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.quaternary.opacity(0.4))
-                    .clipShape(.rect(cornerRadius: 4))
-                  }
-                  .buttonStyle(.plain)
-                  .help("Copy Username")
-                  
-                  
-                  expiryBadge(account.expiresAt)
-                  
-                  if account.isFavorite {
-                    Image(systemName: "star.fill")
-                      .font(.caption2)
-                      .foregroundStyle(.yellow)
-                  }
+              accountRowView(for: account)
+                .onAppear {
+                  loadTOTP(for: account)
                 }
-                
-                HStack(spacing: 8) {
-                  Button {
-                    copyAccount(account)
-                  } label: {
-                    HStack(spacing: 4) {
-                      Image(systemName: "lock")
-                        .font(.caption2)
-                      Text("••••••••••")
-                        .font(.caption)
-                        .monospaced()
-                    }
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.quaternary.opacity(0.4))
-                    .clipShape(.rect(cornerRadius: 4))
-                  }
-                  .buttonStyle(.plain)
-                  .help("Copy password")
-                  
-                  if account.hasTOTP, let config = totpConfigs[account.id] {
-                    let _ = now
-                    let progress = CGFloat(TOTPService.remainingSeconds(config: config)) / CGFloat(config.period)
-                    let code = TOTPService.generate(config: config) ?? "------"
-                    let isExpiring = TOTPService.remainingSeconds(config: config) <= 5
-                    
-                    HStack(spacing: 4) {
-                      Button {
-                        clipboardService.copy(code)
-                      } label: {
-                        HStack(spacing: 3) {
-                          Image(systemName: "lock.shield")
-                            .font(.caption2)
-                          Text(code)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.bold)
-                        }
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.quaternary.opacity(0.4))
-                        .clipShape(.rect(cornerRadius: 4))
-                      }
-                      .buttonStyle(.plain)
-                      .help("Copy TOTP code")
-                      
-                      ZStack {
-                        Circle()
-                          .stroke(.quaternary, lineWidth: 3)
-                          .frame(width: 24, height: 24)
-                        Circle()
-                          .trim(from: 0, to: progress)
-                          .stroke(isExpiring ? Color.red : Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                          .frame(width: 24, height: 24)
-                          .rotationEffect(.degrees(-90))
-                        Text("\(TOTPService.remainingSeconds(config: config))")
-                          .font(.system(size: 8, design: .monospaced))
-                          .foregroundStyle(isExpiring ? .red : .secondary)
-                      }
-                    }
-                  }
-                }
-              }
-              .padding(.vertical, 4)
-              .onAppear {
-                loadTOTP(for: account)
-              }
             }
           } label: {
             HStack(spacing: 6) {
@@ -366,11 +272,116 @@ struct MenuBarPopover: View {
         Text("Expired")
           .font(.caption2)
           .foregroundStyle(.red)
-      } else if daysUntil <= 7 {
+      } else       if daysUntil <= 7 {
         Text("\(daysUntil)d")
           .font(.caption2)
           .foregroundStyle(.orange)
       }
     }
   }
+  
+  @ViewBuilder
+  private func accountRowView(for account: Account) -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack(spacing: 8) {
+        Button {
+          copyUsername(account)
+        } label: {
+          HStack(spacing: 4) {
+            Image(systemName: "person.circle")
+              .foregroundStyle(.tint)
+              .frame(width: 14)
+            
+            Text(account.identifier)
+              .font(.callout)
+              .lineLimit(1)
+          }
+          .foregroundStyle(.secondary)
+          .padding(.horizontal, 6)
+          .padding(.vertical, 2)
+          .background(.quaternary.opacity(0.4))
+          .clipShape(.rect(cornerRadius: 4))
+        }
+        .buttonStyle(.plain)
+        .help("Copy Username")
+        
+        expiryBadge(account.expiresAt)
+        
+        if account.isFavorite {
+          Image(systemName: "star.fill")
+            .font(.caption2)
+            .foregroundStyle(.yellow)
+        }
+      }
+      
+      HStack(spacing: 8) {
+        Button {
+          copyAccount(account)
+        } label: {
+          HStack(spacing: 4) {
+            Image(systemName: "lock")
+              .font(.caption2)
+            Text("••••••••••")
+              .font(.caption)
+              .monospaced()
+          }
+          .foregroundStyle(.secondary)
+          .padding(.horizontal, 6)
+          .padding(.vertical, 2)
+          .background(.quaternary.opacity(0.4))
+          .clipShape(.rect(cornerRadius: 4))
+        }
+        .buttonStyle(.plain)
+        .help("Copy password")
+        
+        if account.hasTOTP, let config = totpConfigs[account.id] {
+          let _ = now
+          let progress = CGFloat(TOTPService.remainingSeconds(config: config)) / CGFloat(config.period)
+          let code = TOTPService.generate(config: config) ?? "------"
+          let isExpiring = TOTPService.remainingSeconds(config: config) <= 5
+          
+          HStack(spacing: 4) {
+            Button {
+              clipboardService.copy(code)
+            } label: {
+              HStack(spacing: 3) {
+                Image(systemName: "lock.shield")
+                  .font(.caption2)
+                Text(code)
+                  .font(.system(.caption, design: .monospaced))
+                  .fontWeight(.bold)
+              }
+              .foregroundStyle(.secondary)
+              .padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .background(.quaternary.opacity(0.4))
+              .clipShape(.rect(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+            .help("Copy TOTP code")
+            
+            ZStack {
+              Circle()
+                .stroke(.quaternary, lineWidth: 3)
+                .frame(width: 24, height: 24)
+              Circle()
+                .trim(from: 0, to: progress)
+                .stroke(isExpiring ? Color.red : Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .frame(width: 24, height: 24)
+                .rotationEffect(.degrees(-90))
+              Text("\(TOTPService.remainingSeconds(config: config))")
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundStyle(isExpiring ? .red : .secondary)
+            }
+          }
+        }
+      }
+    }
+    .padding(.vertical, 4)
+  }
+}
+
+#Preview {
+  MenuBarPopover()
+    .modelContainer(for: [SecretItem.self, Service.self, Account.self, Tag.self], inMemory: true)
 }

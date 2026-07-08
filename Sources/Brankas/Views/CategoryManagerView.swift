@@ -163,3 +163,13 @@ struct CategoryFormView: View {
         }
     }
 }
+
+#Preview {
+    CategoryManagerView()
+        .modelContainer(for: [Category.self], inMemory: true)
+}
+
+#Preview {
+    CategoryFormView()
+        .modelContainer(for: [Category.self], inMemory: true)
+}

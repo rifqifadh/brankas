@@ -155,3 +155,9 @@ struct TOTPView: View {
         remaining = TOTPService.remainingSeconds(config: config)
     }
 }
+
+#Preview {
+    TOTPView(config: TOTPConfiguration(secret: "JBSWY3DPEHPK3PXP"))
+        .environment(ClipboardService())
+        .padding()
+}
