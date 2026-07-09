@@ -243,7 +243,7 @@ struct VaultService {
     }
 
     // MARK: - Items (SecretItem)
-
+    @discardableResult
     static func createItem(data: SecretItemData, secret: String, context: ModelContext) throws -> SecretItem {
         guard isLoaded else { throw VaultError.notLoaded }
         vaultData.items.append(data)
@@ -384,7 +384,7 @@ struct VaultService {
     }
 
     // MARK: - Services
-
+    @discardableResult
     static func createService(data: ServiceData, context: ModelContext) throws -> Service {
         vaultData.services.append(data)
         try persist()
@@ -425,7 +425,7 @@ struct VaultService {
     }
 
     // MARK: - Categories
-
+    @discardableResult
     static func createCategory(data: CategoryData, context: ModelContext) throws -> Category {
         vaultData.categories.append(data)
         try persist()
