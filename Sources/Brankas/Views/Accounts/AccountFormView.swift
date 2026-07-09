@@ -11,7 +11,8 @@ struct AccountFormView: View {
 
     @State private var identifier = ""
     @State private var secretValue = ""
-    @State private var selectedService: Service?
+    @State private var serviceName = ""
+    @State private var serviceIcon = "globe"
     @State private var hasExpiry = false
     @State private var expiresAt = Date().addingTimeInterval(86400 * 90)
     @State private var notes = ""
@@ -20,37 +21,74 @@ struct AccountFormView: View {
     @State private var hasTOTP = false
     @State private var totpInput = ""
     @State private var parsedConfig: TOTPConfiguration?
-    @State private var showingServicePicker = false
     @State private var errorMessage: String?
+
+    private let iconOptions = ["globe", "network", "cloud", "externaldrive", "server.rack",
+                                "building", "house", "bolt", "lock", "person"]
 
     private var title: String {
         existingAccount != nil ? "Edit Account" : "New Account"
+    }
+
+    private var matchedService: Service? {
+        guard !serviceName.isEmpty else { return nil }
+        return services.first { $0.name.localizedCaseInsensitiveCompare(serviceName) == .orderedSame }
+    }
+
+    private var filteredServices: [Service] {
+        guard !serviceName.isEmpty else { return [] }
+        return services.filter { $0.name.localizedStandardContains(serviceName) }
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Service") {
-                    Button {
-                        showingServicePicker = true
-                    } label: {
-                        HStack {
-                            if let service = selectedService {
-                                Label(service.name, systemImage: service.icon)
-                            } else {
-                                Text("Select a service...")
-                                    .foregroundStyle(.secondary)
+                    TextField("Service name", text: $serviceName)
+                        .onChange(of: serviceName) { _, _ in
+                            if let match = matchedService {
+                                serviceIcon = match.icon
                             }
-                            Spacer()
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        }
+
+                    if !filteredServices.isEmpty {
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                ForEach(filteredServices) { svc in
+                                    Button {
+                                        serviceName = svc.name
+                                        serviceIcon = svc.icon
+                                    } label: {
+                                        Label(svc.name, systemImage: svc.icon)
+                                            .font(.callout)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .contentShape(.rect)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 100)
+                        .background(.quaternary.opacity(0.15))
+                        .clipShape(.rect(cornerRadius: 6))
+                    }
+
+                    if !serviceName.isEmpty && matchedService == nil {
+                        DisclosureGroup("Choose icon") {
+                            LazyVGrid(columns: Array(repeating: .init(.flexible()), count: 6), spacing: 12) {
+                                ForEach(iconOptions, id: \.self) { icon in
+                                    Image(systemName: icon)
+                                        .font(.title3)
+                                        .frame(width: 36, height: 36)
+                                        .background(serviceIcon == icon ? Color.accentColor.opacity(0.2) : .clear)
+                                        .clipShape(.rect(cornerRadius: 8))
+                                        .onTapGesture { serviceIcon = icon }
+                                }
+                            }
                         }
                     }
-                    .buttonStyle(.plain)
-                }
-                .sheet(isPresented: $showingServicePicker) {
-                    ServicePickerView(services: services, selectedService: $selectedService)
                 }
 
                 Section("Account") {
@@ -156,12 +194,12 @@ struct AccountFormView: View {
                 parsedConfig = TOTPService.parseURL(newValue)
             }
             .onAppear {
-                selectedService = preselectedService
                 if let account = existingAccount {
                     identifier = account.identifier
                     notes = account.notes
                     isFavorite = account.isFavorite
-                    selectedService = account.service
+                    serviceName = account.service.name
+                    serviceIcon = account.service.icon
                     secretValue = (try? VaultService.read(for: account.id.uuidString)) ?? ""
                     hasTOTP = account.hasTOTP
                     if account.hasTOTP {
@@ -173,6 +211,9 @@ struct AccountFormView: View {
                         hasExpiry = true
                         expiresAt = expiry
                     }
+                } else if let service = preselectedService {
+                    serviceName = service.name
+                    serviceIcon = service.icon
                 }
             }
         }
@@ -189,12 +230,22 @@ struct AccountFormView: View {
             errorMessage = "Secret value is required"
             return
         }
-        guard let service = selectedService else {
-            errorMessage = "Select a service"
+
+        let trimmedName = serviceName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            errorMessage = "Service name is required"
             return
         }
 
         do {
+            let service: Service
+            if let match = matchedService {
+                service = match
+            } else {
+                let data = ServiceData(id: UUID(), name: trimmedName, icon: serviceIcon)
+                service = try VaultService.createService(data: data, context: modelContext)
+            }
+
             let totpValue = parsedConfig?.secret ?? totpInput
 
             if let account = existingAccount {

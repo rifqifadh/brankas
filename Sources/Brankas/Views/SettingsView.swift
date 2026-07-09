@@ -8,18 +8,19 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("biometricUnlock") private var biometricUnlock = false
     @Query private var allSecrets: [SecretItem]
+    @Query(sort: \Account.updatedAt, order: .reverse) private var allAccounts: [Account]
 
     @State private var exportPassword = ""
     @State private var importPassword = ""
     @State private var showingExporter = false
     @State private var showingImporter = false
     @State private var exportData: Data?
+    @State private var showingUnencryptedExporter = false
+    @State private var unencryptedExportData: Data?
+    @State private var showingUnencryptedWarning = false
     @State private var alertMessage: String?
     @State private var showingAlert = false
     @State private var showingBackupPicker = false
-    @State private var backups: [VaultBackup] = []
-    @State private var selectedBackup: VaultBackup?
-    @State private var showingRestoreConfirm = false
     @State private var showingBulkImporter = false
     @State private var bulkImportResult = ""
     @State private var showingResetConfirm = false
@@ -55,6 +56,13 @@ struct SettingsView: View {
         .fileExporter(isPresented: $showingExporter, item: exportData, contentTypes: [UTType.json], defaultFilename: "brankas-export") { result in
             switch result {
             case .success: alertMessage = "Export successful"
+            case .failure(let error): alertMessage = "Export failed: \(error.localizedDescription)"
+            }
+            if alertMessage != nil { showingAlert = true }
+        }
+        .fileExporter(isPresented: $showingUnencryptedExporter, item: unencryptedExportData, contentTypes: [UTType.json], defaultFilename: "brankas-export-plaintext") { result in
+            switch result {
+            case .success: alertMessage = "Unencrypted export saved"
             case .failure(let error): alertMessage = "Export failed: \(error.localizedDescription)"
             }
             if alertMessage != nil { showingAlert = true }
@@ -117,7 +125,6 @@ struct SettingsView: View {
                 }
 
                 Button("View Backups") {
-                    backups = VaultBackupService.listBackups()
                     showingBackupPicker = true
                 }
                 .sheet(isPresented: $showingBackupPicker) {
@@ -137,6 +144,21 @@ struct SettingsView: View {
                     performExport()
                 }
                 .disabled(exportPassword.isEmpty || allSecrets.isEmpty)
+            }
+
+            Section("Unencrypted Export") {
+                Button("Export Unencrypted (JSON)", role: .destructive) {
+                    showingUnencryptedWarning = true
+                }
+                .disabled(allSecrets.isEmpty)
+                .alert("Export Unencrypted?", isPresented: $showingUnencryptedWarning) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Export", role: .destructive) {
+                        performUnencryptedExport()
+                    }
+                } message: {
+                    Text("The exported JSON file will contain ALL secrets in plaintext. Anyone who has access to the file can read your passwords. Only use this for manual migration to other tools.")
+                }
             }
 
             Section("Import") {
@@ -243,75 +265,23 @@ struct SettingsView: View {
     }
 
     private var backupListView: some View {
-        NavigationStack {
-            if backups.isEmpty {
-                ContentUnavailableView(
-                    "No Backups",
-                    systemImage: "clock.arrow.circlepath",
-                    description: Text("A backup is created automatically once per day after unlocking.")
-                )
-            } else {
-                List(backups) { backup in
-                    Button {
-                        selectedBackup = backup
-                        showingRestoreConfirm = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundStyle(.tint)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(backup.formattedDate)
-                                    .font(.body)
-                                Text(backup.formattedSize)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-
-                            Button("Show in Finder", systemImage: "folder") {
-                                NSWorkspace.shared.activateFileViewerSelecting([backup.url])
-                            }
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.secondary)
-                            .help("Show in Finder")
-                        }
-                    }
-                    .buttonStyle(.plain)
+        BackupListView(
+            onRestore: { backup in
+                do {
+                    try VaultBackupService.restore(from: backup)
+                    alertMessage = "Backup restored. Please restart Brankas for the changes to take effect."
+                } catch {
+                    alertMessage = "Restore failed: \(error.localizedDescription)"
                 }
-            }
-        }
-        .navigationTitle("Restore Backup")
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { showingBackupPicker = false }
-            }
-        }
-        .alert("Restore Backup?", isPresented: $showingRestoreConfirm) {
-            Button("Cancel", role: .cancel) { }
-            Button("Restore", role: .destructive) {
-                performRestore()
-            }
-        } message: {
-            Text("This will replace the entire vault with the backup from \(selectedBackup?.formattedDate ?? ""). All current secrets, accounts, services, and metadata will be replaced. A restart is required.")
-        }
-        .frame(width: 360, height: 300)
+                showingAlert = true
+                showingBackupPicker = false
+            },
+            onDismiss: { showingBackupPicker = false }
+        )
     }
 
-    private func performRestore() {
-        guard let backup = selectedBackup else { return }
-        do {
-            try VaultBackupService.restore(from: backup)
-            alertMessage = "Backup restored. Please restart Brankas for the changes to take effect."
-        } catch {
-            alertMessage = "Restore failed: \(error.localizedDescription)"
-        }
-        showingAlert = true
-        showingBackupPicker = false
-    }
-
-    private func performExport() {
-        let entries: [ExportEntry] = allSecrets.compactMap { item in
+    private func buildExportItems() -> [ExportEntry] {
+        allSecrets.compactMap { item in
             guard let value = try? VaultService.read(for: item.id.uuidString) else { return nil }
             return ExportEntry(
                 id: item.id,
@@ -324,10 +294,48 @@ struct SettingsView: View {
                 url: item.url
             )
         }
+    }
+
+    private func buildExportAccounts() -> [AccountExportEntry] {
+        allAccounts.compactMap { account in
+            guard let value = try? VaultService.read(for: account.id.uuidString) else { return nil }
+            let totpSecret = account.hasTOTP ? (try? VaultService.read(for: "totp-\(account.id.uuidString)")) : nil
+            return AccountExportEntry(
+                id: account.id,
+                serviceName: account.service.name,
+                serviceUrl: account.service.url,
+                serviceIcon: account.service.icon,
+                identifier: account.identifier,
+                value: value,
+                notes: account.notes,
+                expiresAt: account.expiresAt,
+                hasTOTP: account.hasTOTP,
+                totpSecret: totpSecret,
+                isFavorite: account.isFavorite
+            )
+        }
+    }
+
+    private func performExport() {
+        let items = buildExportItems()
+        let accounts = buildExportAccounts()
 
         do {
-            exportData = try exportService.encryptExport(entries, password: exportPassword)
+            exportData = try exportService.encryptExport(items: items, accounts: accounts, password: exportPassword)
             showingExporter = true
+        } catch {
+            alertMessage = "Export failed: \(error.localizedDescription)"
+            showingAlert = true
+        }
+    }
+
+    private func performUnencryptedExport() {
+        let items = buildExportItems()
+        let accounts = buildExportAccounts()
+
+        do {
+            unencryptedExportData = try exportService.unencryptedExport(items: items, accounts: accounts)
+            showingUnencryptedExporter = true
         } catch {
             alertMessage = "Export failed: \(error.localizedDescription)"
             showingAlert = true
@@ -346,9 +354,17 @@ struct SettingsView: View {
 
             do {
                 let data = try Data(contentsOf: url)
-                let entries = try exportService.decryptExport(data, password: importPassword)
-                try importEntries(entries)
-                alertMessage = "Imported \(entries.count) secrets"
+                let container = try exportService.decryptExport(data, password: importPassword)
+                var importedItems = 0
+                var importedAccounts = 0
+                try importEntries(container.items, &importedItems)
+                try importAccountEntries(container.accounts, &importedAccounts)
+                let total = importedItems + importedAccounts
+                let parts = [
+                    importedItems > 0 ? "\(importedItems) secrets" : "",
+                    importedAccounts > 0 ? "\(importedAccounts) accounts" : "",
+                ].filter { !$0.isEmpty }.joined(separator: ", ")
+                alertMessage = "Imported \(parts)"
             } catch {
                 alertMessage = "Import failed: \(error.localizedDescription)"
             }
@@ -360,7 +376,7 @@ struct SettingsView: View {
         }
     }
 
-    private func importEntries(_ entries: [ExportEntry]) throws {
+    private func importEntries(_ entries: [ExportEntry], _ count: inout Int) throws {
         for entry in entries {
             let tagIds: [UUID] = entry.tags.map { name in
                 let trimmed = name.trimmingCharacters(in: .whitespaces)
@@ -386,6 +402,38 @@ struct SettingsView: View {
                 updatedAt: Date()
             )
             try VaultService.createItem(data: data, secret: entry.value, context: modelContext)
+            count += 1
+        }
+    }
+
+    private func importAccountEntries(_ entries: [AccountExportEntry], _ count: inout Int) throws {
+        for entry in entries {
+            let svcId: UUID
+            if let existing = VaultService.currentVaultData.services.first(where: { $0.name.lowercased() == entry.serviceName.lowercased() }) {
+                svcId = existing.id
+            } else {
+                svcId = UUID()
+                let svcData = ServiceData(id: svcId, name: entry.serviceName, url: entry.serviceUrl, icon: entry.serviceIcon)
+                try VaultService.createService(data: svcData, context: modelContext)
+            }
+
+            let data = AccountData(
+                id: entry.id,
+                identifier: entry.identifier,
+                notes: entry.notes,
+                expiresAt: entry.expiresAt,
+                hasTOTP: entry.hasTOTP || entry.totpSecret != nil,
+                isFavorite: entry.isFavorite,
+                createdAt: Date(),
+                updatedAt: Date(),
+                serviceId: svcId
+            )
+            try VaultService.createAccount(data: data, secret: entry.value, context: modelContext)
+
+            if let totp = entry.totpSecret, !totp.isEmpty {
+                try VaultService.save(secret: totp, for: "totp-\(entry.id.uuidString)")
+            }
+            count += 1
         }
     }
 
@@ -431,6 +479,76 @@ struct SettingsView: View {
         VaultService.reset(context: modelContext)
         alertMessage = "All data has been reset"
         showingAlert = true
+    }
+}
+
+// MARK: - Backup List Sheet
+
+private struct BackupListView: View {
+    let onRestore: (VaultBackup) -> Void
+    let onDismiss: () -> Void
+
+    @State private var backups: [VaultBackup] = []
+    @State private var selectedBackup: VaultBackup?
+    @State private var showingRestoreConfirm = false
+
+    var body: some View {
+        NavigationStack {
+            if backups.isEmpty {
+                ContentUnavailableView(
+                    "No Backups",
+                    systemImage: "clock.arrow.circlepath",
+                    description: Text("A backup is created automatically once per day after unlocking.")
+                )
+            } else {
+                List(backups) { backup in
+                    Button {
+                        selectedBackup = backup
+                        showingRestoreConfirm = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundStyle(.tint)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(backup.formattedDate)
+                                    .font(.body)
+                                Text(backup.formattedSize)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+
+                            Button("Show in Finder", systemImage: "folder") {
+                                NSWorkspace.shared.activateFileViewerSelecting([backup.url])
+                            }
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
+                            .help("Show in Finder")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .onAppear {
+            backups = VaultBackupService.listBackups()
+        }
+        .navigationTitle("Restore Backup")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel", action: onDismiss)
+            }
+        }
+        .alert("Restore Backup?", isPresented: $showingRestoreConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Restore", role: .destructive) {
+                if let backup = selectedBackup { onRestore(backup) }
+            }
+        } message: {
+            Text("This will replace the entire vault with the backup from \(selectedBackup?.formattedDate ?? ""). All current secrets, accounts, services, and metadata will be replaced. A restart is required.")
+        }
+        .frame(width: 360, height: 300)
     }
 }
 

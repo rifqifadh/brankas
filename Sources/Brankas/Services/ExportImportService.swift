@@ -2,6 +2,8 @@ import CryptoKit
 import Foundation
 import CommonCrypto
 
+// MARK: - Export Models
+
 struct ExportEntry: Codable {
     let id: UUID
     let name: String
@@ -11,6 +13,26 @@ struct ExportEntry: Codable {
     let tags: [String]
     let notes: String
     let url: String?
+}
+
+struct AccountExportEntry: Codable {
+    let id: UUID
+    let serviceName: String
+    let serviceUrl: String?
+    let serviceIcon: String
+    let identifier: String
+    let value: String
+    let notes: String
+    let expiresAt: Date?
+    let hasTOTP: Bool
+    let totpSecret: String?
+    let isFavorite: Bool
+}
+
+struct ExportContainer: Codable {
+    let version: Int
+    let items: [ExportEntry]
+    let accounts: [AccountExportEntry]
 }
 
 enum ExportError: LocalizedError {
@@ -32,17 +54,16 @@ struct ExportImportService {
     private let keyLength = 32
     private let saltLength = 16
 
-    func encryptExport(_ entries: [ExportEntry], password: String) throws -> Data {
+    func encryptExport(items: [ExportEntry], accounts: [AccountExportEntry], password: String) throws -> Data {
+        let container = ExportContainer(version: 2, items: items, accounts: accounts)
         let encoder = JSONEncoder()
-        let jsonData = try encoder.encode(entries)
+        let jsonData = try encoder.encode(container)
 
-        // Generate random salt
         var salt = Data(count: saltLength)
         _ = salt.withUnsafeMutableBytes { buffer in
             SecRandomCopyBytes(kSecRandomDefault, saltLength, buffer.baseAddress!)
         }
 
-        // Derive key with PBKDF2
         guard let key = deriveKey(password: password, salt: salt) else {
             throw ExportError.encryptionFailed
         }
@@ -52,13 +73,12 @@ struct ExportImportService {
             throw ExportError.encryptionFailed
         }
 
-        // Prepend salt to encrypted data
         var exportData = salt
         exportData.append(combined)
         return exportData
     }
 
-    func decryptExport(_ data: Data, password: String) throws -> [ExportEntry] {
+    func decryptExport(_ data: Data, password: String) throws -> ExportContainer {
         guard data.count > saltLength else { throw ExportError.invalidPassword }
 
         let salt = data[..<saltLength]
@@ -80,7 +100,19 @@ struct ExportImportService {
         }
 
         let decoder = JSONDecoder()
-        return try decoder.decode([ExportEntry].self, from: decryptedData)
+        decoder.dateDecodingStrategy = .iso8601
+
+        // Try new container format first
+        if let container = try? decoder.decode(ExportContainer.self, from: decryptedData) {
+            return container
+        }
+
+        // Fallback: old format (array of ExportEntry, pre-v2)
+        if let legacyItems = try? decoder.decode([ExportEntry].self, from: decryptedData) {
+            return ExportContainer(version: 1, items: legacyItems, accounts: [])
+        }
+
+        throw ExportError.decryptionFailed
     }
 
     private func deriveKey(password: String, salt: Data) -> SymmetricKey? {
@@ -107,14 +139,23 @@ struct ExportImportService {
         return SymmetricKey(data: Data(derivedKey))
     }
 
-    func unencryptedExport(_ entries: [ExportEntry]) throws -> Data {
+    func unencryptedExport(items: [ExportEntry], accounts: [AccountExportEntry]) throws -> Data {
+        let container = ExportContainer(version: 2, items: items, accounts: accounts)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return try encoder.encode(entries)
+        return try encoder.encode(container)
     }
 
-    func importUnencrypted(_ data: Data) throws -> [ExportEntry] {
+    func importUnencrypted(_ data: Data) throws -> ExportContainer {
         let decoder = JSONDecoder()
-        return try decoder.decode([ExportEntry].self, from: data)
+        decoder.dateDecodingStrategy = .iso8601
+
+        if let container = try? decoder.decode(ExportContainer.self, from: data) {
+            return container
+        }
+        if let legacyItems = try? decoder.decode([ExportEntry].self, from: data) {
+            return ExportContainer(version: 1, items: legacyItems, accounts: [])
+        }
+        throw ExportError.decryptionFailed
     }
 }
