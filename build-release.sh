@@ -27,6 +27,9 @@ cp "$PROJECT_DIR/Sources/Brankas/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/A
 echo "Signing (ad-hoc)..."
 codesign --force --deep --sign - "$APP_BUNDLE"
 
+echo "Removing quarantine attribute (no Developer ID)..."
+xattr -dr com.apple.quarantine "$APP_BUNDLE" 2>/dev/null || true
+
 echo "Creating DMG..."
 STAGING_DIR=$(mktemp -d)
 cp -R "$APP_BUNDLE" "$STAGING_DIR/"
@@ -42,5 +45,9 @@ echo ""
 echo "✅ Release build complete:"
 echo "   DMG: $DMG_PATH"
 echo "   App: $APP_BUNDLE"
+echo ""
+echo "Gatekeeper: if macOS blocks, run:"
+echo "   xattr -dr com.apple.quarantine \"$APP_BUNDLE\""
+echo "Or right-click → Open in Finder."
 echo ""
 echo "To open: open \"$DMG_PATH\""
