@@ -14,7 +14,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Brankas",
-            dependencies: []
+            dependencies: [],
+            resources: [.process("Assets.xcassets"), .process("AppIcon.icns")]
         )
     ]
 )

@@ -19,6 +19,7 @@ targets:
       properties:
         CFBundleDevelopmentRegion: en
         CFBundleExecutable: Brankas
+        CFBundleIconFile: AppIcon
         CFBundleIdentifier: com.rifqifadhlillah.brankas
         CFBundleInfoDictionaryVersion: "6.0"
         CFBundleName: Brankas
@@ -35,6 +36,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.rifqifadhlillah.brankas
         MARKETING_VERSION: "1.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Info.plist
         CODE_SIGN_STYLE: Automatic
@@ -56,3 +58,17 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.rifqifadhlillah.brankas.tests
+
+schemes:
+  Brankas:
+    build:
+      targets:
+        Brankas: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
