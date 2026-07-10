@@ -33,13 +33,18 @@ Brankas (Indonesian for "vault") is a native macOS menu bar app for storing API 
 
 ## Screenshots
 
-<!-- TODO: Add screenshots
-![Menu Bar Popover](docs/screenshots/menubar.png)
-![Main Window](docs/screenshots/main-window.png)
-![Settings](docs/screenshots/settings.png)
--->
-
-*Screenshots coming soon. PRs welcome.*
+<p align="center">
+  <img src="screenshots/Screenshot%202026-07-10%20at%2010.50.43.png" alt="Menu bar popover — accounts tab" width="360">
+  <img src="screenshots/Screenshot%202026-07-10%20at%2010.51.02.png" alt="Menu bar popover — vault tab" width="360">
+</p>
+<p align="center">
+  <img src="screenshots/Screenshot%202026-07-10%20at%2010.51.19.png" alt="Main window — accounts list" width="360">
+  <img src="screenshots/Screenshot%202026-07-10%20at%2010.51.29.png" alt="Adding a new service" width="360">
+</p>
+<p align="center">
+  <img src="screenshots/Screenshot%202026-07-10%20at%2010.54.53.png" alt="Searching vault items" width="360">
+  <img src="screenshots/Screenshot%202026-07-10%20at%2010.55.19.png" alt="Settings window" width="360">
+</p>
 
 ---
 
