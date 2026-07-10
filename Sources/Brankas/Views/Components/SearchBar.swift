@@ -8,7 +8,7 @@ struct SearchBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search tokens, passwords...", text: $text)
+            TextField("Search by name, service, type...", text: $text)
                 .textFieldStyle(.plain)
                 .font(.callout)
 

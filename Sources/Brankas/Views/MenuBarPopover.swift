@@ -25,9 +25,7 @@ struct MenuBarPopover: View {
     guard !searchText.isEmpty else { return secrets }
     return secrets.filter { item in
       item.name.localizedStandardContains(searchText)
-      || item.tags.contains { $0.name.localizedStandardContains(searchText)
-        || item.type.displayName.localizedStandardContains(searchText)
-      }
+      || item.tags.contains { $0.name.localizedStandardContains(searchText) }
     }
   }
   
@@ -35,7 +33,7 @@ struct MenuBarPopover: View {
     guard !searchText.isEmpty else { return services }
     return services.filter { svc in
       svc.name.localizedStandardContains(searchText)
-      || svc.accounts.contains { $0.identifier.localizedStandardContains(searchText) }
+      || allAccounts.contains { $0.service.id == svc.id && $0.identifier.localizedStandardContains(searchText) }
     }
   }
   
@@ -129,6 +127,8 @@ struct MenuBarPopover: View {
     .onChange(of: searchText) { _, newValue in
       if !newValue.isEmpty {
         expandedServices = Set(services.map(\.id))
+      } else {
+        expandedServices = []
       }
     }
     .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
@@ -173,6 +173,19 @@ struct MenuBarPopover: View {
       .frame(maxHeight: .infinity)
     } else {
       List {
+        if !expandedServices.isEmpty {
+          HStack {
+            Spacer()
+            Button("Collapse All", systemImage: "chevron.up") {
+              expandedServices = []
+            }
+            .buttonStyle(.plain)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          }
+          .listRowSeparator(.hidden)
+          .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 4))
+        }
         ForEach(filteredServices) { service in
           let accts = accounts(for: service)
           DisclosureGroup(isExpanded: expandedBinding(for: service.id)) {
