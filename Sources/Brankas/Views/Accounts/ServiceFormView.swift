@@ -11,9 +11,7 @@ struct ServiceFormView: View {
     @State private var url = ""
     @State private var selectedIcon = "globe"
     @State private var errorMessage: String?
-
-    private let iconOptions = ["globe", "network", "cloud", "externaldrive", "server.rack",
-                               "building", "house", "bolt", "lock", "person"]
+    @State private var showIconPicker = false
 
     private var isEditing: Bool { existingService != nil }
 
@@ -29,16 +27,24 @@ struct ServiceFormView: View {
                 }
 
                 Section("Icon") {
-                    LazyVGrid(columns: Array(repeating: .init(.flexible()), count: 6), spacing: 12) {
-                        ForEach(iconOptions, id: \.self) { icon in
-                            Image(systemName: icon)
-                                .font(.title3)
-                                .frame(width: 36, height: 36)
-                                .background(selectedIcon == icon ? Color.accentColor.opacity(0.2) : .clear)
-                                .clipShape(.rect(cornerRadius: 8))
-                                .onTapGesture { selectedIcon = icon }
+                    Button {
+                        showIconPicker = true
+                    } label: {
+                        HStack {
+                            Image(systemName: selectedIcon)
+                                .font(.title2)
+                                .frame(width: 32, height: 32)
+                                .foregroundStyle(.tint)
+                            Text(selectedIcon)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
                 if let error = errorMessage {
@@ -63,6 +69,9 @@ struct ServiceFormView: View {
             }
         }
         .frame(width: 380, height: 350)
+        .sheet(isPresented: $showIconPicker) {
+            SFSymbolPicker(selectedIcon: $selectedIcon)
+        }
         .onAppear {
             if let service = existingService {
                 name = service.name
