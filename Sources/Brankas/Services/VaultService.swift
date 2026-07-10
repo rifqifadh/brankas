@@ -479,6 +479,98 @@ struct VaultService {
         }
     }
 
+    // MARK: - Seed Data
+
+    #if DEBUG
+    static func seed() {
+        vaultData = .empty()
+        vaultData.createdAt = Date()
+        let now = Date()
+
+        // Categories
+        let catWork = CategoryData(id: UUID(), name: "Work", icon: "briefcase", colorHex: "#007AFF", sortOrder: 0)
+        let catPersonal = CategoryData(id: UUID(), name: "Personal", icon: "person", colorHex: "#34C759", sortOrder: 1)
+        let catFinance = CategoryData(id: UUID(), name: "Finance", icon: "dollarsign.circle", colorHex: "#FF9500", sortOrder: 2)
+        let catDev = CategoryData(id: UUID(), name: "Development", icon: "hammer", colorHex: "#AF52DE", sortOrder: 3)
+        vaultData.categories = [catWork, catPersonal, catFinance, catDev]
+
+        // Tags
+        let tagImportant = TagData(id: UUID(), name: "important")
+        let tagWork = TagData(id: UUID(), name: "work")
+        let tagPersonal = TagData(id: UUID(), name: "personal")
+        let tag2FA = TagData(id: UUID(), name: "2FA")
+        let tagLegacy = TagData(id: UUID(), name: "legacy")
+        let tagCrypto = TagData(id: UUID(), name: "crypto")
+        vaultData.tags = [tagImportant, tagWork, tagPersonal, tag2FA, tagLegacy, tagCrypto]
+
+        // Services
+        let svcGoogle = ServiceData(id: UUID(), name: "Google", url: "https://google.com", icon: "mail")
+        let svcGithub = ServiceData(id: UUID(), name: "GitHub", url: "https://github.com", icon: "chevron.left.forwardslash.chevron.right")
+        let svcAWS = ServiceData(id: UUID(), name: "AWS", url: "https://aws.amazon.com", icon: "cloud")
+        let svcNetflix = ServiceData(id: UUID(), name: "Netflix", url: "https://netflix.com", icon: "tv")
+        let svcSlack = ServiceData(id: UUID(), name: "Slack", url: "https://slack.com", icon: "message")
+        let svcApple = ServiceData(id: UUID(), name: "Apple ID", url: "https://appleid.apple.com", icon: "apple.logo")
+        vaultData.services = [svcGoogle, svcGithub, svcAWS, svcNetflix, svcSlack, svcApple]
+
+        // Accounts
+        let acctGmail = AccountData(id: UUID(), identifier: "rifqi.fadhlillah@gmail.com", notes: "Primary Gmail", expiresAt: nil, hasTOTP: true, isFavorite: true, createdAt: now, updatedAt: now, serviceId: svcGoogle.id)
+        let acctGoogleAdmin = AccountData(id: UUID(), identifier: "admin@rifqi.dev", notes: "Google Workspace admin", expiresAt: Calendar.current.date(byAdding: .day, value: 45, to: now), hasTOTP: true, isFavorite: true, createdAt: now, updatedAt: now, serviceId: svcGoogle.id)
+        let acctGithub = AccountData(id: UUID(), identifier: "rifqifadhlillah", notes: "Personal GitHub account", expiresAt: nil, hasTOTP: true, isFavorite: false, createdAt: now, updatedAt: now, serviceId: svcGithub.id)
+        let acctGithubOrg = AccountData(id: UUID(), identifier: "rifqi@company.io", notes: "Work GitHub Enterprise", expiresAt: Calendar.current.date(byAdding: .day, value: 90, to: now), hasTOTP: true, isFavorite: false, createdAt: now, updatedAt: now, serviceId: svcGithub.id)
+        let acctAWSRoot = AccountData(id: UUID(), identifier: "rifqi@aws.rifqi.dev", notes: "AWS root account. Keep safe!", expiresAt: nil, hasTOTP: true, isFavorite: true, createdAt: now, updatedAt: now, serviceId: svcAWS.id)
+        let acctAWSDev = AccountData(id: UUID(), identifier: "dev-admin", notes: "Dev environment admin", expiresAt: Calendar.current.date(byAdding: .day, value: 30, to: now), hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now, serviceId: svcAWS.id)
+        let acctNetflix = AccountData(id: UUID(), identifier: "rifqi.fadhlillah@gmail.com", notes: "Shared family plan", expiresAt: Calendar.current.date(byAdding: .month, value: 2, to: now), hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now, serviceId: svcNetflix.id)
+        let acctSlack = AccountData(id: UUID(), identifier: "rifqi@company.io", notes: "Company Slack (all channels)", expiresAt: nil, hasTOTP: true, isFavorite: false, createdAt: now, updatedAt: now, serviceId: svcSlack.id)
+        let acctApple = AccountData(id: UUID(), identifier: "rifqi.fadhlillah@icloud.com", notes: "iCloud & App Store purchases", expiresAt: nil, hasTOTP: true, isFavorite: true, createdAt: now, updatedAt: now, serviceId: svcApple.id)
+        let acctAppleDev = AccountData(id: UUID(), identifier: "rifqi.fadhlillah@icloud.com", notes: "Apple Developer Program ($99/yr)", expiresAt: Calendar.current.date(byAdding: .day, value: 120, to: now), hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now, serviceId: svcApple.id)
+        vaultData.accounts = [acctGmail, acctGoogleAdmin, acctGithub, acctGithubOrg, acctAWSRoot, acctAWSDev, acctNetflix, acctSlack, acctApple, acctAppleDev]
+
+        // Passwords (stored in secrets dict)
+        vaultData.secrets[acctGmail.id.uuidString] = "secure-gmail-pw-2026!"
+        vaultData.secrets[acctGoogleAdmin.id.uuidString] = "ws-admin@Rifqi2026!"
+        vaultData.secrets[acctGithub.id.uuidString] = "gh_pat_rifqi_abc123def456"
+        vaultData.secrets[acctGithubOrg.id.uuidString] = "gh-enterprise-token-xyz789"
+        vaultData.secrets[acctAWSRoot.id.uuidString] = "AWS!Root@2026#SecretKey"
+        vaultData.secrets[acctAWSDev.id.uuidString] = "dev-env-pass-123"
+        vaultData.secrets[acctNetflix.id.uuidString] = "netflix-family-2026!"
+        vaultData.secrets[acctSlack.id.uuidString] = "slack-token-xoxb-123456789"
+        vaultData.secrets[acctApple.id.uuidString] = "ic1Oud-St0r3-P@ss!"
+        vaultData.secrets[acctAppleDev.id.uuidString] = "dev-program-2026!"
+
+        // TOTP secrets
+        vaultData.secrets["totp-\(acctGmail.id.uuidString)"] = "otpauth://totp/Google:rifqi.fadhlillah@gmail.com?secret=JBSWY3DPEHPK3PXP&issuer=Google"
+        vaultData.secrets["totp-\(acctGoogleAdmin.id.uuidString)"] = "otpauth://totp/Google:admin@rifqi.dev?secret=K5XW4ZDPF5LVKVKV&issuer=Google"
+        vaultData.secrets["totp-\(acctGithub.id.uuidString)"] = "otpauth://totp/GitHub:rifqifadhlillah?secret=MZXW6YTBOJXW64QQ&issuer=GitHub"
+        vaultData.secrets["totp-\(acctGithubOrg.id.uuidString)"] = "otpauth://totp/GitHub:rifqi@company.io?secret=GNRW4ZBON5WU2YRR&issuer=GitHub"
+        vaultData.secrets["totp-\(acctAWSRoot.id.uuidString)"] = "otpauth://totp/AWS:rifqi@aws.rifqi.dev?secret=KN2XEZDPJR2XQ3YQ&issuer=AWS"
+        vaultData.secrets["totp-\(acctSlack.id.uuidString)"] = "otpauth://totp/Slack:rifqi@company.io?secret=FZ2D4B3VMF2W4Z2U&issuer=Slack"
+        vaultData.secrets["totp-\(acctApple.id.uuidString)"] = "otpauth://totp/Apple:rifqi@icloud.com?secret=LZK4WDRUK5MV6SSU&issuer=Apple"
+
+        // Secret Items (tokens/passwords/keys stored in vault)
+        let item1 = SecretItemData(id: UUID(), name: "GitHub Personal Access Token", typeRawValue: SecretType.token.rawValue, categoryId: catDev.id, tagIds: [tagImportant.id, tagWork.id, tagPersonal.id], notes: "Full repo access. Rotate every 90 days.", url: "https://github.com/settings/tokens", expiresAt: Calendar.current.date(byAdding: .day, value: 60, to: now), hasTOTP: false, isFavorite: true, createdAt: now, updatedAt: now)
+        let item2 = SecretItemData(id: UUID(), name: "WiFi Router Admin", typeRawValue: SecretType.password.rawValue, categoryId: catPersonal.id, tagIds: [tagPersonal.id], notes: "TP-Link Archer AX73 admin password", url: "http://192.168.1.1", expiresAt: nil, hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now)
+        let item3 = SecretItemData(id: UUID(), name: "Production SSH Key", typeRawValue: SecretType.sshKey.rawValue, categoryId: catDev.id, tagIds: [tagImportant.id, tagWork.id], notes: "Deploy key for production servers. Do NOT share.", url: nil, expiresAt: Calendar.current.date(byAdding: .month, value: 6, to: now), hasTOTP: false, isFavorite: true, createdAt: now, updatedAt: now)
+        let item4 = SecretItemData(id: UUID(), name: "Let's Encrypt SSL Cert", typeRawValue: SecretType.certificate.rawValue, categoryId: catDev.id, tagIds: [tagWork.id], notes: "Wildcard cert for *.rifqi.dev. Auto-renew via certbot.", url: "https://rifqi.dev", expiresAt: Calendar.current.date(byAdding: .day, value: 25, to: now), hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now)
+        let item5 = SecretItemData(id: UUID(), name: "Bank Transfer PIN", typeRawValue: SecretType.note.rawValue, categoryId: catFinance.id, tagIds: [tagImportant.id, tagPersonal.id], notes: "BCA mobile PIN reminder: mother's birth year + postal code", url: nil, expiresAt: nil, hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now)
+        let item6 = SecretItemData(id: UUID(), name: "Twitter/X API Bearer Token", typeRawValue: SecretType.token.rawValue, categoryId: catWork.id, tagIds: [tagWork.id], notes: "Used by analytics pipeline. Rate limit: 500 req/15min.", url: "https://developer.twitter.com", expiresAt: Calendar.current.date(byAdding: .day, value: 14, to: now), hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now)
+        let item7 = SecretItemData(id: UUID(), name: "Recovery Codes Backup", typeRawValue: SecretType.note.rawValue, categoryId: catPersonal.id, tagIds: [tagImportant.id, tagPersonal.id], notes: "Google/GitHub/AWS recovery codes — stored offline too", url: nil, expiresAt: nil, hasTOTP: false, isFavorite: true, createdAt: now, updatedAt: now)
+        let item8 = SecretItemData(id: UUID(), name: "VPN Certificate", typeRawValue: SecretType.certificate.rawValue, categoryId: catWork.id, tagIds: [tagWork.id], notes: "WireGuard client cert for remote access", url: nil, expiresAt: Calendar.current.date(byAdding: .day, value: 200, to: now), hasTOTP: false, isFavorite: false, createdAt: now, updatedAt: now)
+        vaultData.items = [item1, item2, item3, item4, item5, item6, item7, item8]
+
+        // Secrets for items
+        vaultData.secrets[item1.id.uuidString] = "ghp_abc123def456ghi789jkl012mno345pqr678stu"
+        vaultData.secrets[item2.id.uuidString] = "admin:TPLink@2026!"
+        vaultData.secrets[item3.id.uuidString] = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn\nNhAAAAAwEAAQAAAQEA8v7jQp2L3gX5f6H8zJ1kR2v3cV4b5n6m7k8l9K0j1h2f3g4h5j6\n-----END OPENSSH PRIVATE KEY-----"
+        vaultData.secrets[item4.id.uuidString] = "-----BEGIN CERTIFICATE-----\nMIIFazCCA1OgAwIBAgISAx9uJ3V0bHj4x8u2c5f6g7h8\n-----END CERTIFICATE-----"
+        vaultData.secrets[item5.id.uuidString] = "PIN: 270890 (mom's birth year) + 55123 (postal code)"
+        vaultData.secrets[item6.id.uuidString] = "AAAAAAAAAAAAAAAAAAAAAABC123def456ghi789jkl0"
+        vaultData.secrets[item7.id.uuidString] = "Google: xxxx-xxxx-xxxx-xxxx\nGitHub: 1234-5678-9012-3456\nAWS: abcd-efgh-ijkl-mnop"
+        vaultData.secrets[item8.id.uuidString] = "-----BEGIN CERTIFICATE-----\nMIIB9TCCAV6gAwIBAgITMwA7gK6V5b3J3m4z\n-----END CERTIFICATE-----"
+
+        try? persist()
+    }
+    #endif
+
     // MARK: - Data Access for Sync
 
     static var currentVaultData: VaultData { vaultData }

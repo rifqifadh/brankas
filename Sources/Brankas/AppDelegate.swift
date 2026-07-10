@@ -33,6 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
 
+        #if DEBUG
+        VaultService.seed()
+        #endif
         VaultBackupService.createBackup()
         let syncContext = ModelContext(container)
         VaultSyncService.syncAll(context: syncContext)
